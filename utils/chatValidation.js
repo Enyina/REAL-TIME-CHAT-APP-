@@ -4,8 +4,9 @@ const MAX_MESSAGE_LENGTH = 2000;
 
 function normalizeLabel(value, maximum) {
   if (typeof value !== "string") return null;
+  if (/[\x00-\x1f\x7f]/.test(value)) return null;
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > maximum || /[\x00-\x1f\x7f]/.test(trimmed)) {
+  if (!trimmed || trimmed.length > maximum) {
     return null;
   }
   return trimmed;
