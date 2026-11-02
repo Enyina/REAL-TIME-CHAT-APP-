@@ -3,66 +3,59 @@ const chatMessages = document.querySelector(".chat-messages");
 const roomName = document.getElementById("room-name");
 const userList = document.getElementById("users");
 
-//get user and roomfrom url
-const { username, room } = Qs.parse(location.search, {
-  ignoreQueryPrefix: true,
-});
-
-console.log(username, room);
-
+const { username, room } = Qs.parse(location.search, { ignoreQueryPrefix: true });
 const socket = io();
-
-//join chatRoom
 socket.emit("joinRoom", { username, room });
 
-//Get room and users
 socket.on("roomUsers", ({ room, users }) => {
-  outputRoomName(room);
+  roomName.textContent = room;
   outputUsers(users);
 });
 
-//message from server
 socket.on("message", (message) => {
-  //   console.log(message);
   outputMessage(message);
-
-  //scroll down
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-//message submit
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
+socket.on("joinError", (message) => outputNotice(message));
+socket.on("chatError", (message) => outputNotice(message));
 
-  //get message text
-  const msg = e.target.elements.msg.value;
-
-  //emit message to server
+chatForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = event.target.elements.msg;
+  const msg = input.value.trim();
+  if (!msg) return;
   socket.emit("chatMessage", msg);
-
-  //clear input
-  e.target.elements.msg.value = "";
-  e.target.elements.msg.focus();
+  input.value = "";
+  input.focus();
 });
 
-//output message to DOM
 function outputMessage(message) {
   const div = document.createElement("div");
   div.classList.add("message");
-  div.innerHTML = `<p class="meta"> ${message.username} <span> ${message.time} </span></p>
-  <p class="text">
-     ${message.text}
-  </p>`;
-  document.querySelector(".chat-messages").appendChild(div);
+  const meta = document.createElement("p");
+  meta.classList.add("meta");
+  meta.textContent = String(message.username || "");
+  const time = document.createElement("span");
+  time.textContent = " " + String(message.time || "");
+  meta.appendChild(time);
+  const body = document.createElement("p");
+  body.classList.add("text");
+  body.textContent = String(message.text || "");
+  div.appendChild(meta);
+  div.appendChild(body);
+  chatMessages.appendChild(div);
 }
 
-//add room name to DOM
-function outputRoomName(room) {
-  roomName.innerText = room;
+function outputNotice(message) {
+  outputMessage({ username: "Chat", text: message, time: "" });
 }
-//add users to DOM
+
 function outputUsers(users) {
-  userList.innerHTML = `
-  ${users.map((user) => `<li> ${user.username} </li>`).join("")}
-  `;
+  userList.replaceChildren();
+  for (const user of users) {
+    const item = document.createElement("li");
+    item.textContent = String(user.username || "");
+    userList.appendChild(item);
+  }
 }
